@@ -1,0 +1,11 @@
+# requires python 2.7.18
+
+pip-upgrader
+numpy==1.16.4
+opencv-python==3.4.3
+tqdm==4.28.1
+tensorflow==1.15.2
+matplotlib==2.2.4
+plotly==4.4.1
+pandas==0.24.2
+waymo-open-dataset==1.0.1
