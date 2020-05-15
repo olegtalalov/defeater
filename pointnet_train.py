@@ -18,8 +18,8 @@ import pointnet_model
 import data_loader
 import descriptors_set
 
-def training_loop(source_folder, device, adam_parameters, shelduler_parameters, batch_size=32, epoch_number=10, validation_frac=0.2, val_step=10, reg_lambda=0.001
-                  min_pts=50, cls_num=2, descriptor_size=128, pointnet_feature_transform, save_model_to):
+def training_loop(source_folder, device, adam_parameters, shelduler_parameters, pointnet_feature_transform, save_model_to,  batch_size=32, epoch_number=10, validation_frac=0.2, val_step=10, reg_lambda=0.001,
+                  min_pts=50, cls_num=2, descriptor_size=128):
     """
         source_folder: folder with training examples (in .npy format)
 
@@ -34,7 +34,7 @@ def training_loop(source_folder, device, adam_parameters, shelduler_parameters, 
     point_net_cls = pointnet_model.PointNetCls(k=cls_num, descriptor_size=descriptor_size,
                                                feature_transform=pointnet_feature_transform)
 
-    train_loader, val_loader = data_loader.create_train_val_data_loaders(source_folder, num_of_workers=2, batch_size=batch_size
+    train_loader, val_loader = data_loader.create_train_val_data_loaders(source_folder, num_of_workers=2, batch_size=batch_size,
                                                                          validation_frac=validation_frac, min_pts=min_pts)
 
     best_scores_descriptors = descriptors_set.DescriptorsSet(max_number=30,
@@ -121,15 +121,15 @@ def main():
     parser.add_argument('--source_path', required=True, help='Source path with training data')
     parser.add_argument('--model_save_path', required=True, help='Path to folder where model checkpoints will be saved')
 
-    parser.add_argument('--validation_frac', type=float, defaut=0.2, help='Relative size of validation subset to whole dataset')
+    parser.add_argument('--validation_frac', type=float, default=0.2, help='Relative size of validation subset to whole dataset')
     parser.add_argument('--epoch_number', type=int, default=10, help='Number of epoch to train')
     parser.add_argument('--batch_size', type=int, default=32, help='Size of batch')
     parser.add_argument('--descriptor_size', type=int, default=128, help='Length of PointNet descriptor')
     parser.add_argument('--pointnet_feature_transform', action='store_true', help='Should use transformed features from intermediate layers')
-    parser.add_argument('--manual_seed', type=int, defaut=42, help='Random seed for training process')
-    parser.add_argument('--min_pts', type=int, defaut=50, help='Minimal points in bounding box')
-    parser.add_argument('--val_step', type=int, defaut=10, help='Performs testing on validation subset every val_step batches')
-    parser.add_argument('--reg_lambda', type=float, defaut=0.001, help='Regularization coefficient for transformed features')
+    parser.add_argument('--manual_seed', type=int, default=42, help='Random seed for training process')
+    parser.add_argument('--min_pts', type=int, default=50, help='Minimal points in bounding box')
+    parser.add_argument('--val_step', type=int, default=10, help='Performs testing on validation subset every val_step batches')
+    parser.add_argument('--reg_lambda', type=float, default=0.001, help='Regularization coefficient for transformed features')
     parser.add_argument('--adam_parameters', type=json.loads, default={"lr": 0.001, "betas" : [0.9, 0.999]},
                         help='Parameters for ADAM optimizer (lr and betas) e.g. {"lr": 0.001, "betas" : [0.9, 0.999]}')
     parser.add_argument('--shelduler_parameters', type=json.loads, default= {"step_size": 20, "gamma": 0.5},
@@ -148,7 +148,7 @@ def main():
                   adam_parameters=args.adam_parameters,
                   shelduler_parameters=args.shelduler_parameters,
                   min_pts=args.min_pts,
-                  cls_num=len(os.listdir(source_folder)),
+                  cls_num=len(os.listdir(args.source_path)),
                   epoch_number=args.epoch_number,
                   val_step=args.val_step,
                   descriptor_size=args.descriptor_size,
