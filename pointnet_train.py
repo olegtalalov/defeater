@@ -19,7 +19,7 @@ import data_loader
 import descriptors_set
 
 def training_loop(source_folder, device, adam_parameters, shelduler_parameters, pointnet_feature_transform, save_model_to,  batch_size=32, epoch_number=10, validation_frac=0.2, val_step=10, reg_lambda=0.001,
-                  min_pts=50, cls_num=2, descriptor_size=128):
+                  min_pts=50, cls_num=2, descriptor_size=128, existing_model_path="", num_workers=0):
     """
         source_folder: folder with training examples (in .npy format)
 
@@ -34,7 +34,7 @@ def training_loop(source_folder, device, adam_parameters, shelduler_parameters, 
     point_net_cls = pointnet_model.PointNetCls(k=cls_num, descriptor_size=descriptor_size,
                                                feature_transform=pointnet_feature_transform)
 
-    train_loader, val_loader = data_loader.create_train_val_data_loaders(source_folder, num_of_workers=2, batch_size=batch_size,
+    train_loader, val_loader = data_loader.create_train_val_data_loaders(source_folder, num_of_workers=num_workers, batch_size=batch_size,
                                                                          validation_frac=validation_frac, min_pts=min_pts)
 
     best_scores_descriptors = descriptors_set.DescriptorsSet(max_number=30,
@@ -69,7 +69,7 @@ def training_loop(source_folder, device, adam_parameters, shelduler_parameters, 
             loss = F.nll_loss(pred, target)
 
             if pointnet_feature_transform:
-                loss += feature_transform_regularizer(trans_feat) * reg_lambda
+                loss += pointnet_model.feature_transform_regularizer(trans_feat) * reg_lambda
 
             loss.backward()
 
@@ -120,7 +120,7 @@ def main():
 
     parser.add_argument('--source_path', required=True, help='Source path with training data')
     parser.add_argument('--model_save_path', required=True, help='Path to folder where model checkpoints will be saved')
-
+    parser.add_argument('--existing_model_path', default="", help='Path to existing model checkpoint')
     parser.add_argument('--validation_frac', type=float, default=0.2, help='Relative size of validation subset to whole dataset')
     parser.add_argument('--epoch_number', type=int, default=10, help='Number of epoch to train')
     parser.add_argument('--batch_size', type=int, default=32, help='Size of batch')
@@ -128,6 +128,7 @@ def main():
     parser.add_argument('--pointnet_feature_transform', action='store_true', help='Should use transformed features from intermediate layers')
     parser.add_argument('--manual_seed', type=int, default=42, help='Random seed for training process')
     parser.add_argument('--min_pts', type=int, default=50, help='Minimal points in bounding box')
+    parser.add_argument('--num_workers', type=int, default=0, help='Number of processes for dataloader')
     parser.add_argument('--val_step', type=int, default=10, help='Performs testing on validation subset every val_step batches')
     parser.add_argument('--reg_lambda', type=float, default=0.001, help='Regularization coefficient for transformed features')
     parser.add_argument('--adam_parameters', type=json.loads, default={"lr": 0.001, "betas" : [0.9, 0.999]},
@@ -136,6 +137,8 @@ def main():
                         help='Parameters for optimizer lr shelduler'
                         )
 
+
+
     args = parser.parse_args()
 
     random.seed(args.manual_seed)
@@ -143,8 +146,12 @@ def main():
 
     training_loop(
                   source_folder=args.source_path,
+                  save_model_to=args.model_save_path,
+                  existing_model_path=args.existing_model_path,
                   device=device,
                   validation_frac=args.validation_frac,
+                  num_workers=args.num_workers,
+                  batch_size=args.batch_size,
                   adam_parameters=args.adam_parameters,
                   shelduler_parameters=args.shelduler_parameters,
                   min_pts=args.min_pts,
@@ -153,9 +160,7 @@ def main():
                   val_step=args.val_step,
                   descriptor_size=args.descriptor_size,
                   reg_lambda=args.reg_lambda,
-                  pointnet_feature_transform=args.pointnet_feature_transform,
-                  batch_size=args.batch_size,
-                  save_model_to=args.model_save_path
+                  pointnet_feature_transform=args.pointnet_feature_transform
                  )
 
 
