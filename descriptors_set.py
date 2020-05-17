@@ -38,3 +38,6 @@ class DescriptorsSet(object):
         elif len(empty_slots) and np.all(gated_cosine_similarity[self.best_descriptors[:, 0] > 0]):
             self.best_descriptors[empty_slots[0], 0] = p
             self.best_descriptors[empty_slots[0], 1:] = descriptor
+
+    def get_approx(self, descriptor):
+        return self.best_descriptors[np.dot(self.best_descriptors[self.best_descriptors[:, 0] > 0, 1:], descriptor).argmax(), 1:]

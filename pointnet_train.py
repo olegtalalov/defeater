@@ -40,6 +40,9 @@ def training_loop(source_folder, device, adam_parameters, shelduler_parameters, 
     best_scores_descriptors = descriptors_set.DescriptorsSet(max_number=30,
                                                              descriptor_size=descriptor_size)
 
+    if not os.path.exists(save_model_to):
+        os.mkdir(save_model_to)
+
     if existing_model_path != "":
         point_net_cls.load_state_dict(torch.load(existing_model_path))
 
@@ -84,7 +87,7 @@ def training_loop(source_folder, device, adam_parameters, shelduler_parameters, 
 
             print('[epoch #{0}: {1}/{2}] train loss: {3} batch accuracy: {4}'.format(epoch, i, num_batches, loss.item(), correct.sum().item() / float(batch_size)))
 
-            if i % val_step == 0:
+            if val_step and validation_frac and i % val_step == 0:
                 j, [points, target] = next(enumerate(val_loader))
 
                 points = points.squeeze().transpose(2, 1)

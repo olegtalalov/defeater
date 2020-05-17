@@ -1,6 +1,10 @@
 import os
 import numpy as np
-import scipy
+import pandas as pd
+import tqdm
+import itertools
+import scipy.stats
+import scipy.optimize
 import torch
 import torch.utils.data as tdata
 import torch.nn as nn
@@ -36,14 +40,13 @@ class MatchingCascade(object):
 
     def _model_inference(self, dest_path):
         """Run model and save result to dest_path"""
-        self.model.to(device)
 
         deep_cosine_descriptor = []
         predictions = []
         targets = []
 
         with torch.no_grad():
-            for [points, target] in tqdm.tqdm_notebook(self.dataloader):
+            for [points, target] in tqdm.tqdm(self.dataloader):
                 points = points.squeeze().transpose(2, 1)
                 points, target = points.cuda(), target.cuda()
                 pred, _, _, descriptor = self.model(points)
@@ -67,8 +70,9 @@ class MatchingCascade(object):
         self.take_last_n = take_last_n
         self.agg_function = agg_function
         self.track_dict = dict()
-        self.all_segment_names = self.metadata['segment_name'].unique()[:segments_to_proc]
-        self.metadata = self.metadata[self.metadata['number_of_points'] >= min_pts_num]
+
+        self.filtered_metadata = self.metadata[self.metadata['number_of_points'] >= min_pts_num]
+        self.all_segment_names = sorted(self.filtered_metadata['segment_name'].unique())[:segments_to_proc]
 
         for segment_name, segment_split in self._get_next_segment():
             self._segment_tracks = []
@@ -141,7 +145,7 @@ class MatchingCascade(object):
 
     def _get_next_segment(self):
         for current_segment in self.all_segment_names:
-            yield current_segment, self.metadata.loc[self.metadata['segment_name'] == current_segment]
+            yield current_segment, self.filtered_metadata.loc[self.filtered_metadata['segment_name'] == current_segment]
 
     def _get_next_frame(self, segment_split):
         for current_frame in segment_split['frame_num'].unique().tolist():
@@ -154,10 +158,13 @@ class MatchingCascade(object):
     def _points_cloud_id_to_track_id(self):
         self.track_dict_ids = dict()
         for segment_name in self.all_segment_names:
-            self.track_dict_ids[segment_name] = [self.metadata['track_id'].loc[i].to_numpy()
+            self.track_dict_ids[segment_name] = [self.filtered_metadata['track_id'].loc[i].to_numpy()
                                                  for i in self.track_dict[segment_name]]
 
     def _eval_metrics(self):
         self.track_metrics = { segment_name : [(scipy.stats.mode(track).count[0] / len(track), len(np.unique(track)), len(track))
                                                 for track in self.track_dict_ids[segment_name]]
                                                 for segment_name in self.all_segment_names}
+    def re_id_metric(self):
+        self.re_id = {segment_name: sum(map(lambda x: sum(x[:-1] != x[1:]), self.track_dict_ids[segment_name]))
+                                    for segment_name in self.all_segment_names}
