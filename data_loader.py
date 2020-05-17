@@ -87,25 +87,32 @@ def create_train_val_data_loaders(data_dir, *, min_pts=75, batch_size=32, valida
     train_data.samples = [all_dataset[i] for i in train_id]
     train_data.targets = [all_targets[i] for i in train_id]
 
-    val_data.samples = [all_dataset[i] for i in val_id]
-    val_data.targets = [all_targets[i] for i in val_id]
-
-    # readjust probabilities for unbalanced classes
     train_weight = 1 / np.array([(np.array(train_data.targets) == tgt).sum() for tgt in np.unique(train_data.targets)])
-    val_weight = 1 / np.array([(np.array(val_data.targets) == tgt).sum() for tgt in np.unique(val_data.targets)])
 
     train_samples_weight = torch.tensor([train_weight[tgt] for tgt in train_data.targets])
-    val_samples_weight = torch.tensor([val_weight[tgt] for tgt in val_data.targets])
 
     train_sampler = tdata.WeightedRandomSampler(train_samples_weight, len(train_samples_weight))
 
-    val_sampler = tdata.WeightedRandomSampler(val_samples_weight, len(val_samples_weight))
-
     train_loader = tdata.DataLoader(train_data,
-                   sampler=train_sampler, batch_size=batch_size, num_workers=num_of_workers, drop_last=True)
+                                    sampler=train_sampler, batch_size=batch_size, num_workers=num_of_workers, drop_last=True)
 
-    val_loader = tdata.DataLoader(val_data,
-                   sampler=val_sampler, batch_size=batch_size, num_workers=num_of_workers, drop_last=True)
+    if validation_frac > 0:
+        val_data.samples = [all_dataset[i] for i in val_id]
+        val_data.targets = [all_targets[i] for i in val_id]
+
+        # readjust probabilities for unbalanced classes
+
+        val_weight = 1 / np.array([(np.array(val_data.targets) == tgt).sum() for tgt in np.unique(val_data.targets)])
+
+
+        val_samples_weight = torch.tensor([val_weight[tgt] for tgt in val_data.targets])
+
+        val_sampler = tdata.WeightedRandomSampler(val_samples_weight, len(val_samples_weight))
+
+        val_loader = tdata.DataLoader(val_data,
+                                        sampler=val_sampler, batch_size=batch_size, num_workers=num_of_workers, drop_last=True)
+    else:
+        val_loader = None
 
     return train_loader, val_loader
 
