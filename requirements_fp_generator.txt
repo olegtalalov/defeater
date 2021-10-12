@@ -2,7 +2,7 @@
 
 pip-upgrader
 numpy==1.16.4
-opencv-python==3.4.3
+opencv-python==4.2.0.32
 tqdm==4.28.1
 tensorflow==1.15.2
 matplotlib==2.2.4
