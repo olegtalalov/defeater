@@ -1,7 +1,7 @@
 # requires python 2.7.18
 
 pip-upgrader
-numpy==1.16.4
+numpy==1.22.0
 opencv-python==3.4.3
 tqdm==4.28.1
 tensorflow==1.15.2
